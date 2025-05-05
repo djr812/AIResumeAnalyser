@@ -4,6 +4,7 @@ from django.shortcuts import render
 from .forms import ResumeForm
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
+from ml_model.services import predict_resume_success
 
 # Parse PDF resume
 def parse_pdf(file):
@@ -38,8 +39,18 @@ def index(request):
             vectors = vectorizer.fit_transform([resume_text, job_description])
             score = cosine_similarity(vectors[0:1], vectors[1:2])[0][0]
             
-            # Here you can add logic for keyword extraction, suggestions, etc.
-            return render(request, 'analyser/result.html', {'score': score, 'resume_text': resume_text, 'job_description': job_description})
+            # Get ML prediction
+            prediction, error = predict_resume_success(resume_text, job_description)
+            
+            context = {
+                'score': score,
+                'resume_text': resume_text,
+                'job_description': job_description,
+                'prediction': prediction,
+                'error': error
+            }
+            
+            return render(request, 'analyser/result.html', context)
     else:
         form = ResumeForm()
     

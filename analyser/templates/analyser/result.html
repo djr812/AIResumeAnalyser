@@ -5,14 +5,49 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Resume Analyser - Results</title>
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <style>
+        .prediction-box {
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+        .high-confidence { color: #28a745; }
+        .medium-confidence { color: #ffc107; }
+        .low-confidence { color: #dc3545; }
+    </style>
 </head>
 <body>
     <div class="container">
         <h1 class="mt-5">Analysis Results</h1>
-        <p><strong>Job Description Match Score:</strong> {{ score|floatformat:2 }}</p>
+        
+        {% if prediction %}
+        <div class="prediction-box">
+            <h3>HR Interest Prediction</h3>
+            <p><strong>Probability of Interest:</strong> {{ prediction.probability|floatformat:2 }}</p>
+            <p><strong>Confidence Level:</strong> 
+                <span class="{{ prediction.confidence|lower }}-confidence">
+                    {{ prediction.confidence }}
+                </span>
+            </p>
+            <p><strong>Skills Found:</strong> {{ prediction.skills_found }}</p>
+        </div>
+        {% endif %}
+
+        <div class="prediction-box">
+            <h3>Job Description Match</h3>
+            <p><strong>Match Score:</strong> {{ score|floatformat:2 }}</p>
+        </div>
         
         <h3>Suggestions for Improvement</h3>
-        <p>Here you can add more detailed keyword-based suggestions.</p>
+        <ul>
+            {% if prediction.confidence == 'Low' %}
+            <li>Consider adding more relevant skills from the job description</li>
+            {% endif %}
+            {% if score < 0.5 %}
+            <li>Your resume could better match the job requirements</li>
+            {% endif %}
+        </ul>
 
         <a href="/" class="btn btn-primary">Analyse Another Resume</a>
     </div>
