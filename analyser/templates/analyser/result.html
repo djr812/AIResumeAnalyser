@@ -1,55 +1,133 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Resume Analyser - Results</title>
-    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
-    <style>
-        .prediction-box {
-            border: 1px solid #ddd;
-            border-radius: 5px;
-            padding: 20px;
-            margin: 20px 0;
-        }
-        .high-confidence { color: #28a745; }
-        .medium-confidence { color: #ffc107; }
-        .low-confidence { color: #dc3545; }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <h1 class="mt-5">Analysis Results</h1>
-        
-        {% if prediction %}
-        <div class="prediction-box">
-            <h3>HR Interest Prediction</h3>
-            <p><strong>Probability of Interest:</strong> {{ prediction.probability|floatformat:2 }}</p>
-            <p><strong>Confidence Level:</strong> 
-                <span class="{{ prediction.confidence|lower }}-confidence">
-                    {{ prediction.confidence }}
-                </span>
-            </p>
-            <p><strong>Skills Found:</strong> {{ prediction.skills_found }}</p>
-        </div>
-        {% endif %}
+{% extends 'base.html' %}
+{% load analyser_tags %}
+{% load static %}
 
-        <div class="prediction-box">
-            <h3>Job Description Match</h3>
-            <p><strong>Match Score:</strong> {{ score|floatformat:2 }}</p>
-        </div>
-        
-        <h3>Suggestions for Improvement</h3>
-        <ul>
-            {% if prediction.confidence == 'Low' %}
-            <li>Consider adding more relevant skills from the job description</li>
-            {% endif %}
-            {% if score < 0.5 %}
-            <li>Your resume could better match the job requirements</li>
-            {% endif %}
-        </ul>
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'analyser/css/result.css' %}">
+{% endblock %}
 
-        <a href="/" class="btn btn-primary">Analyse Another Resume</a>
+{% block content %}
+<div class="container mt-4">
+    <h2>Resume Analysis Results</h2>
+    
+    <!-- ML Prediction Section -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h4>ML Prediction</h4>
+        </div>
+        <div class="card-body">
+            <div class="alert {% if prediction == 'High' %}alert-success{% elif prediction == 'Medium' %}alert-warning{% else %}alert-danger{% endif %}">
+                <h5>HR Interest: {{ prediction }}</h5>
+                <p>Probability: {{ probability|floatformat:2 }}</p>
+                <p>Skills Found: {{ skills_found }}</p>
+            </div>
+        </div>
     </div>
-</body>
-</html>
+
+    <!-- Keyword Heatmap Section -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h4>Keyword Analysis</h4>
+        </div>
+        <div class="card-body">
+            <!-- Section Scores -->
+            <h5>Section Relevance</h5>
+            <div class="row mb-4">
+                {% for section, data in keyword_analysis.section_analysis.items %}
+                <div class="col-md-4 mb-3">
+                    <div class="card section-card">
+                        <div class="card-body">
+                            <h6 class="card-title text-capitalize">{{ section }}</h6>
+                            <div class="progress">
+                                <div class="progress-bar" 
+                                     role="progressbar" 
+                                     data-width="{{ data.score|multiply:100 }}"
+                                     style="--progress-width: {{ data.score|multiply:100 }}%"
+                                     aria-valuenow="{{ data.score|multiply:100 }}" 
+                                     aria-valuemin="0" 
+                                     aria-valuemax="100">
+                                    {{ data.score|multiply:100 }}%
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+
+            <!-- Keyword Relevance -->
+            <h5>Keyword Relevance</h5>
+            <div class="table-responsive">
+                <table class="table table-bordered">
+                    <thead>
+                        <tr>
+                            <th>Keyword</th>
+                            <th>Status</th>
+                            <th>Found In</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for keyword in keyword_analysis.keyword_relevance %}
+                        <tr>
+                            <td>{{ keyword.keyword }}</td>
+                            <td>
+                                {% if keyword.found %}
+                                <span class="badge bg-success">Found</span>
+                                {% else %}
+                                <span class="badge bg-danger">Missing</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% for section in keyword.sections %}
+                                <span class="badge bg-info">{{ section.name }} ({{ section.count }})</span>
+                                {% endfor %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- TF-IDF Score Section -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h4>Job Description Match</h4>
+        </div>
+        <div class="card-body">
+            <div class="progress">
+                <div class="progress-bar" 
+                     role="progressbar" 
+                     data-width="{{ tfidf_score|multiply:100 }}"
+                     style="--progress-width: {{ tfidf_score|multiply:100 }}%"
+                     aria-valuenow="{{ tfidf_score|multiply:100 }}" 
+                     aria-valuemin="0" 
+                     aria-valuemax="100">
+                    {{ tfidf_score|multiply:100 }}%
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Resume Text Section -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h4>Parsed Resume</h4>
+        </div>
+        <div class="card-body">
+            <pre class="resume-text">{{ resume_text }}</pre>
+        </div>
+    </div>
+
+    <!-- Job Description Section -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h4>Job Description</h4>
+        </div>
+        <div class="card-body">
+            <pre class="job-description">{{ job_description }}</pre>
+        </div>
+    </div>
+</div>
+{% endblock %}

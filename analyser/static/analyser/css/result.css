@@ -1,0 +1,34 @@
+.progress {
+    height: 25px;
+}
+
+.progress-bar {
+    font-size: 14px;
+    line-height: 25px;
+}
+
+.resume-text, .job-description {
+    white-space: pre-wrap;
+    font-family: inherit;
+    background-color: #f8f9fa;
+    padding: 15px;
+    border-radius: 4px;
+}
+
+.badge {
+    margin-right: 5px;
+}
+
+/* Progress bar widths */
+.progress-bar[data-width] {
+    width: var(--progress-width);
+}
+
+/* Section card styles */
+.section-card {
+    margin-bottom: 1rem;
+}
+
+.section-card .card-title {
+    margin-bottom: 0.5rem;
+} 
