@@ -199,7 +199,7 @@ def extract_keywords(text):
 
 def generate_improved_resume(resume_text, job_description):
     """
-    Generate an improved version of the resume using Ollama's Mistral model.
+    Generate an improved version of the resume using Ollama's Llama3.3 model.
     Returns the improved resume text and a list of changes made.
     """
     prompt = f"""As an expert resume writer, analyze this resume and job description, then create an improved version of the resume that better matches the job requirements. 
@@ -233,7 +233,7 @@ def generate_improved_resume(resume_text, job_description):
         response = requests.post(
             'http://10.1.1.126:11434/api/generate',
             json={
-                'model': 'mistral',
+                'model': 'llama3.1',
                 'prompt': prompt,
                 'stream': False,
                 'options': {
