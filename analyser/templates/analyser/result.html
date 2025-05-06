@@ -2,131 +2,124 @@
 {% load analyser_tags %}
 {% load static %}
 
+{% block title %}Analysis Results{% endblock %}
+
 {% block extra_css %}
 <link rel="stylesheet" href="{% static 'analyser/css/result.css' %}">
 {% endblock %}
 
 {% block content %}
 <div class="container mt-4">
-    <h2>Resume Analysis Results</h2>
-    
-    <!-- ML Prediction Section -->
-    <div class="card mb-4">
-        <div class="card-header">
-            <h4>ML Prediction</h4>
-        </div>
-        <div class="card-body">
-            <div class="alert {% if prediction == 'High' %}alert-success{% elif prediction == 'Medium' %}alert-warning{% else %}alert-danger{% endif %}">
-                <h5>HR Interest: {{ prediction }}</h5>
-                <p>Probability: {{ probability|floatformat:2 }}</p>
-                <p>Skills Found: {{ skills_found }}</p>
-            </div>
-        </div>
-    </div>
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card mb-4">
+                <div class="card-body">
+                    <h2 class="card-title">Resume Analysis Results</h2>
+                    
+                    <!-- ML Prediction Section -->
+                    <div class="section-card">
+                        <h3 class="section-title">ML Prediction</h3>
+                        <div class="alert {% if prediction == 'High' %}alert-success{% elif prediction == 'Medium' %}alert-warning{% else %}alert-danger{% endif %}">
+                            <h4 class="alert-heading">HR Interest Prediction: {{ prediction }}</h4>
+                            <p>Confidence: {{ probability|floatformat:2 }}%</p>
+                            {% if skills_found %}
+                            <p>Skills Found: {{ skills_found|join:", " }}</p>
+                            {% endif %}
+                        </div>
+                    </div>
 
-    <!-- Keyword Heatmap Section -->
-    <div class="card mb-4">
-        <div class="card-header">
-            <h4>Keyword Analysis</h4>
-        </div>
-        <div class="card-body">
-            <!-- Section Scores -->
-            <h5>Section Relevance</h5>
-            <div class="row mb-4">
-                {% for section, data in keyword_analysis.section_analysis.items %}
-                <div class="col-md-4 mb-3">
-                    <div class="card section-card">
-                        <div class="card-body">
-                            <h6 class="card-title text-capitalize">{{ section }}</h6>
-                            <div class="progress">
-                                <div class="progress-bar" 
-                                     role="progressbar" 
-                                     data-width="{{ data.score|multiply:100 }}"
-                                     style="--progress-width: {{ data.score|multiply:100 }}%"
-                                     aria-valuenow="{{ data.score|multiply:100 }}" 
-                                     aria-valuemin="0" 
-                                     aria-valuemax="100">
-                                    {{ data.score|multiply:100 }}%
+                    <!-- Improved Resume Section -->
+                    {% if not is_improved %}
+                    <div class="section-card">
+                        <h3 class="section-title">Improve Your Resume</h3>
+                        <p>Would you like to generate an improved version of your resume that better matches the job description?</p>
+                        <form method="post" action="{% url 'generate_improved' %}" id="improveForm">
+                            {% csrf_token %}
+                            <input type="hidden" name="resume_text" value="{{ resume_text }}">
+                            <input type="hidden" name="job_description" value="{{ job_description }}">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-magic"></i> Generate Improved Resume
+                            </button>
+                        </form>
+                    </div>
+                    {% else %}
+                    <div class="section-card">
+                        <h3 class="section-title">Improved Resume</h3>
+                        <div class="alert alert-success">
+                            <h4 class="alert-heading">Resume Improved!</h4>
+                            <p>Your resume has been optimized to better match the job description.</p>
+                            <form method="post" action="{% url 'download_improved' %}" class="mt-3">
+                                {% csrf_token %}
+                                <input type="hidden" name="resume_text" value="{{ resume_text }}">
+                                <button type="submit" class="btn btn-success">
+                                    <i class="fas fa-download"></i> Download Improved Resume
+                                </button>
+                            </form>
+                        </div>
+                        
+                        <h4 class="mt-4">Changes Made:</h4>
+                        <div class="changes-list">
+                            {% for change in changes %}
+                            <div class="card">
+                                <div class="card-body">
+                                    <p class="card-text">{{ change }}</p>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    <!-- Keyword Analysis Section -->
+                    <div class="section-card">
+                        <h3 class="section-title">Keyword Analysis</h3>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <h4>Resume Keywords</h4>
+                                <div class="keyword-cloud">
+                                    {% for keyword, count in keyword_analysis.resume_keywords.items %}
+                                    <span class="badge bg-primary">{{ keyword }}</span>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <h4>Job Description Keywords</h4>
+                                <div class="keyword-cloud">
+                                    {% for keyword, count in keyword_analysis.job_keywords.items %}
+                                    <span class="badge bg-secondary">{{ keyword }}</span>
+                                    {% endfor %}
                                 </div>
                             </div>
                         </div>
                     </div>
-                </div>
-                {% endfor %}
-            </div>
 
-            <!-- Keyword Relevance -->
-            <h5>Keyword Relevance</h5>
-            <div class="table-responsive">
-                <table class="table table-bordered">
-                    <thead>
-                        <tr>
-                            <th>Keyword</th>
-                            <th>Status</th>
-                            <th>Found In</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for keyword in keyword_analysis.keyword_relevance %}
-                        <tr>
-                            <td>{{ keyword.keyword }}</td>
-                            <td>
-                                {% if keyword.found %}
-                                <span class="badge bg-success">Found</span>
-                                {% else %}
-                                <span class="badge bg-danger">Missing</span>
-                                {% endif %}
-                            </td>
-                            <td>
-                                {% for section in keyword.sections %}
-                                <span class="badge bg-info">{{ section.name }} ({{ section.count }})</span>
-                                {% endfor %}
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-        </div>
-    </div>
+                    <!-- Job Description Match Section -->
+                    <div class="section-card">
+                        <h3 class="section-title">Job Description Match</h3>
+                        <div class="progress">
+                            <div class="progress-bar" role="progressbar" data-width="{{ tfidf_score|floatformat:0 }}">
+                                {{ tfidf_score|floatformat:1 }}%
+                            </div>
+                        </div>
+                    </div>
 
-    <!-- TF-IDF Score Section -->
-    <div class="card mb-4">
-        <div class="card-header">
-            <h4>Job Description Match</h4>
-        </div>
-        <div class="card-body">
-            <div class="progress">
-                <div class="progress-bar" 
-                     role="progressbar" 
-                     data-width="{{ tfidf_score|multiply:100 }}"
-                     style="--progress-width: {{ tfidf_score|multiply:100 }}%"
-                     aria-valuenow="{{ tfidf_score|multiply:100 }}" 
-                     aria-valuemin="0" 
-                     aria-valuemax="100">
-                    {{ tfidf_score|multiply:100 }}%
+                    <!-- Parsed Resume Section -->
+                    <div class="section-card">
+                        <h3 class="section-title">Parsed Resume</h3>
+                        <div class="resume-text">
+                            {{ resume_text|linebreaks }}
+                        </div>
+                    </div>
+
+                    <!-- Job Description Section -->
+                    <div class="section-card">
+                        <h3 class="section-title">Job Description</h3>
+                        <div class="job-description">
+                            {{ job_description|linebreaks }}
+                        </div>
+                    </div>
                 </div>
             </div>
-        </div>
-    </div>
-
-    <!-- Resume Text Section -->
-    <div class="card mb-4">
-        <div class="card-header">
-            <h4>Parsed Resume</h4>
-        </div>
-        <div class="card-body">
-            <pre class="resume-text">{{ resume_text }}</pre>
-        </div>
-    </div>
-
-    <!-- Job Description Section -->
-    <div class="card mb-4">
-        <div class="card-header">
-            <h4>Job Description</h4>
-        </div>
-        <div class="card-body">
-            <pre class="job-description">{{ job_description }}</pre>
         </div>
     </div>
 </div>

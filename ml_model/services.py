@@ -1,6 +1,13 @@
 from .models import ResumePredictor
 from .train_model import predict_resume_match
 import re
+import os
+import openai
+from docx import Document
+from docx.shared import Inches
+import io
+import requests
+import json
 
 def extract_skills_from_text(text):
     """Extract skills from text using common patterns."""
@@ -171,4 +178,82 @@ def extract_keywords(text):
         word_freq[word] = word_freq.get(word, 0) + 1
     
     # Return top keywords (words that appear more than once)
-    return [word for word, freq in word_freq.items() if freq > 1] 
+    return [word for word, freq in word_freq.items() if freq > 1]
+
+def generate_improved_resume(resume_text, job_description):
+    """
+    Generate an improved version of the resume using Ollama's Mistral model.
+    Returns the improved resume text and a list of changes made.
+    """
+    prompt = f"""As an expert resume writer, analyze this resume and job description, then create an improved version of the resume that better matches the job requirements. 
+    Focus on:
+    1. Highlighting relevant skills and experiences
+    2. Using keywords from the job description
+    3. Improving the overall structure and impact
+    4. Maintaining the original information but presenting it more effectively
+    
+    Original Resume:
+    {resume_text}
+    
+    Job Description:
+    {job_description}
+    
+    Please provide:
+    1. The improved resume text
+    2. A list of specific changes made
+    3. Explanation of why these changes will improve the match with the job description"""
+    
+    try:
+        # Call Ollama API
+        response = requests.post(
+            'http://10.1.1.126:11434/api/generate',
+            json={
+                'model': 'mistral',
+                'prompt': prompt,
+                'stream': False,
+                'options': {
+                    'temperature': 0.7,
+                    'num_predict': 2000
+                }
+            }
+        )
+        
+        if response.status_code != 200:
+            return None, f"Error from Ollama API: {response.text}"
+        
+        # Parse the response
+        result = response.json()
+        content = result['response']
+        
+        # Split the response into parts
+        parts = content.split('\n\n')
+        
+        improved_resume = parts[0]  # First part is the improved resume
+        changes = parts[1:]  # Rest are the changes and explanations
+        
+        return improved_resume, changes
+        
+    except Exception as e:
+        return None, f"Error generating improved resume: {str(e)}"
+
+def create_pdf_from_text(text, filename):
+    """
+    Create a PDF file from the given text.
+    Returns the PDF file as bytes.
+    """
+    try:
+        # Create a new Word document
+        doc = Document()
+        
+        # Add the text
+        doc.add_paragraph(text)
+        
+        # Save to a bytes buffer
+        buffer = io.BytesIO()
+        doc.save(buffer)
+        buffer.seek(0)
+        
+        return buffer.getvalue()
+        
+    except Exception as e:
+        return None, f"Error creating PDF: {str(e)}" 

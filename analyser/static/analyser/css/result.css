@@ -9,14 +9,15 @@
 
 .resume-text, .job-description {
     white-space: pre-wrap;
-    font-family: inherit;
+    font-family: monospace;
     background-color: #f8f9fa;
     padding: 15px;
     border-radius: 4px;
+    margin-bottom: 20px;
 }
 
 .badge {
-    margin-right: 5px;
+    margin: 2px;
 }
 
 /* Progress bar widths */
@@ -26,9 +27,41 @@
 
 /* Section card styles */
 .section-card {
-    margin-bottom: 1rem;
+    background-color: #fff;
+    border-radius: 8px;
+    padding: 20px;
+    margin-bottom: 20px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }
 
-.section-card .card-title {
-    margin-bottom: 0.5rem;
+.section-title {
+    color: #333;
+    margin-bottom: 20px;
+    font-size: 1.5rem;
+    border-bottom: 2px solid #007bff;
+    padding-bottom: 10px;
+}
+
+.keyword-cloud {
+    margin: 20px 0;
+    line-height: 2.5;
+}
+
+.changes-list {
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.changes-list .card {
+    border-left: 4px solid #28a745;
+    margin-bottom: 10px;
+}
+
+.changes-list .card-body {
+    padding: 15px;
+}
+
+.changes-list .card-text {
+    margin-bottom: 0;
+    color: #333;
 } 
