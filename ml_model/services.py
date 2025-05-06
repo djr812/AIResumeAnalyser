@@ -63,10 +63,13 @@ def predict_resume_success(resume_text, job_description):
         else:
             confidence = 'Low'
         
+        # Convert skills string to list and clean up
+        skills_list = [skill.strip() for skill in skills.split(',') if skill.strip()]
+        
         return {
             'probability': probability,
             'confidence': confidence,
-            'skills_found': skills
+            'skills_found': skills_list
         }, None
         
     except Exception as e:
@@ -86,7 +89,8 @@ def analyze_keywords(resume_text, job_description):
         'projects': ['projects', 'portfolio', 'achievements']
     }
     
-    # Extract keywords from job description
+    # Extract keywords from both texts
+    resume_keywords = extract_keywords(resume_text)
     job_keywords = extract_keywords(job_description)
     
     # Initialize section data
@@ -156,7 +160,8 @@ def analyze_keywords(resume_text, job_description):
     return {
         'section_analysis': section_data,
         'keyword_relevance': keyword_relevance,
-        'job_keywords': job_keywords
+        'resume_keywords': {k: resume_keywords.count(k) for k in set(resume_keywords)},
+        'job_keywords': {k: job_keywords.count(k) for k in set(job_keywords)}
     }
 
 def extract_keywords(text):
@@ -169,7 +174,19 @@ def extract_keywords(text):
     
     # Split into words and remove common words
     words = text.split()
-    stop_words = set(['the', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for', 'with', 'by', 'of', 'a', 'an'])
+    stop_words = set([
+        'the', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for', 'with', 'by', 'of', 'a', 'an',
+        'is', 'are', 'was', 'were', 'be', 'been', 'being', 'have', 'has', 'had', 'do', 'does',
+        'did', 'will', 'would', 'shall', 'should', 'can', 'could', 'may', 'might', 'must',
+        'this', 'that', 'these', 'those', 'i', 'you', 'he', 'she', 'it', 'we', 'they',
+        'me', 'him', 'her', 'us', 'them', 'my', 'your', 'his', 'its', 'our', 'their',
+        'mine', 'yours', 'hers', 'ours', 'theirs', 'who', 'whom', 'whose', 'which', 'what',
+        'where', 'when', 'why', 'how', 'all', 'any', 'both', 'each', 'few', 'more', 'most',
+        'other', 'some', 'such', 'no', 'nor', 'not', 'only', 'own', 'same', 'so', 'than',
+        'too', 'very', 's', 't', 'can', 'will', 'just', 'don', 'should', 'now'
+    ])
+    
+    # Filter out stop words and short words
     words = [word for word in words if word not in stop_words and len(word) > 2]
     
     # Count word frequencies
@@ -198,10 +215,18 @@ def generate_improved_resume(resume_text, job_description):
     Job Description:
     {job_description}
     
-    Please provide:
-    1. The improved resume text
-    2. A list of specific changes made
-    3. Explanation of why these changes will improve the match with the job description"""
+    Please provide your response in the following format:
+    
+    IMPROVED RESUME:
+    [Your improved resume text here]
+    
+    CHANGES MADE:
+    1. [First change]
+    2. [Second change]
+    3. [Third change]
+    
+    EXPLANATION:
+    [Your explanation of why these changes improve the match with the job description]"""
     
     try:
         # Call Ollama API
@@ -225,13 +250,40 @@ def generate_improved_resume(resume_text, job_description):
         result = response.json()
         content = result['response']
         
-        # Split the response into parts
-        parts = content.split('\n\n')
+        # Split the response into sections
+        sections = content.split('\n\n')
+        improved_resume = ""
+        changes = []
         
-        improved_resume = parts[0]  # First part is the improved resume
-        changes = parts[1:]  # Rest are the changes and explanations
+        current_section = None
+        for section in sections:
+            section = section.strip()
+            if not section:
+                continue
+                
+            if section.startswith('IMPROVED RESUME:'):
+                current_section = 'resume'
+                continue
+            elif section.startswith('CHANGES MADE:'):
+                current_section = 'changes'
+                continue
+            elif section.startswith('EXPLANATION:'):
+                current_section = 'explanation'
+                continue
+                
+            if current_section == 'resume':
+                improved_resume += section + '\n\n'
+            elif current_section == 'changes':
+                # Extract numbered changes
+                if section.startswith(('1.', '2.', '3.', '4.', '5.')):
+                    changes.append(section[2:].strip())
+            elif current_section == 'explanation':
+                changes.append(section)
         
-        return improved_resume, changes
+        if not improved_resume:
+            return None, "Failed to generate improved resume"
+            
+        return improved_resume.strip(), changes
         
     except Exception as e:
         return None, f"Error generating improved resume: {str(e)}"
