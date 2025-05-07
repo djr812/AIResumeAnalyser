@@ -1,62 +1,105 @@
 {% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Resume Analyzer{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'analyser/css/index.css' %}">
+{% endblock %}
 
 {% block content %}
 <div class="container mt-4">
-    <div class="row justify-content-center">
-        <div class="col-md-8">
-            <div class="card">
-                <div class="card-header">
-                    <h2 class="text-center">Resume Analyzer</h2>
+    <h2 class="mb-4">Resume Analyzer</h2>
+    
+    {% if messages %}
+    <div class="messages">
+        {% for message in messages %}
+        <div class="alert alert-{{ message.tags }}">
+            {{ message }}
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+    
+    <div class="card">
+        <div class="card-body">
+            <form method="post" enctype="multipart/form-data" id="resumeForm">
+                {% csrf_token %}
+                
+                {% if form.non_field_errors %}
+                <div class="alert alert-danger">
+                    {% for error in form.non_field_errors %}
+                    {{ error }}
+                    {% endfor %}
                 </div>
-                <div class="card-body">
-                    <form method="post" enctype="multipart/form-data">
-                        {% csrf_token %}
-                        
-                        {% if form.non_field_errors %}
-                        <div class="alert alert-danger">
-                            {% for error in form.non_field_errors %}
-                            {{ error }}
-                            {% endfor %}
-                        </div>
-                        {% endif %}
-                        
-                        <div class="mb-3">
-                            <label for="{{ form.resume.id_for_label }}" class="form-label">{{ form.resume.label }}</label>
-                            {{ form.resume }}
-                            {% if form.resume.help_text %}
-                            <div class="form-text">{{ form.resume.help_text }}</div>
-                            {% endif %}
-                            {% if form.resume.errors %}
-                            <div class="invalid-feedback d-block">
-                                {% for error in form.resume.errors %}
-                                {{ error }}
-                                {% endfor %}
-                            </div>
-                            {% endif %}
-                        </div>
-                        
-                        <div class="mb-3">
-                            <label for="{{ form.job_description.id_for_label }}" class="form-label">{{ form.job_description.label }}</label>
-                            {{ form.job_description }}
-                            {% if form.job_description.help_text %}
-                            <div class="form-text">{{ form.job_description.help_text }}</div>
-                            {% endif %}
-                            {% if form.job_description.errors %}
-                            <div class="invalid-feedback d-block">
-                                {% for error in form.job_description.errors %}
-                                {{ error }}
-                                {% endfor %}
-                            </div>
-                            {% endif %}
-                        </div>
-                        
-                        <div class="d-grid">
-                            <button type="submit" class="btn btn-primary">Analyze Resume</button>
-                        </div>
-                    </form>
+                {% endif %}
+                
+                <div class="mb-3">
+                    <label for="{{ form.resume.id_for_label }}" class="form-label">Upload Resume (PDF, DOCX, or TXT)</label>
+                    {{ form.resume }}
+                    {% if form.resume.errors %}
+                    <div class="invalid-feedback d-block">
+                        {% for error in form.resume.errors %}
+                        {{ error }}
+                        {% endfor %}
+                    </div>
+                    {% endif %}
                 </div>
-            </div>
+                
+                <div class="mb-3">
+                    <label for="{{ form.job_description.id_for_label }}" class="form-label">Job Description</label>
+                    {{ form.job_description }}
+                    {% if form.job_description.errors %}
+                    <div class="invalid-feedback d-block">
+                        {% for error in form.job_description.errors %}
+                        {{ error }}
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                </div>
+                
+                <div class="text-center">
+                    <button type="submit" class="btn btn-primary" id="analyzeButton">
+                        <i class="fas fa-search me-2"></i>Analyze Resume
+                    </button>
+                </div>
+            </form>
         </div>
     </div>
 </div>
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.getElementById('resumeForm');
+    const analyzeButton = document.getElementById('analyzeButton');
+    
+    form.addEventListener('submit', function(e) {
+        // Disable the button and show loading state
+        analyzeButton.disabled = true;
+        analyzeButton.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Analyzing...';
+        
+        // Validate form
+        const resumeFile = form.querySelector('input[type="file"]').files[0];
+        const jobDescription = form.querySelector('textarea').value;
+        
+        if (!resumeFile) {
+            e.preventDefault();
+            alert('Please select a resume file.');
+            analyzeButton.disabled = false;
+            analyzeButton.innerHTML = '<i class="fas fa-search me-2"></i>Analyze Resume';
+            return;
+        }
+        
+        if (!jobDescription.trim()) {
+            e.preventDefault();
+            alert('Please enter a job description.');
+            analyzeButton.disabled = false;
+            analyzeButton.innerHTML = '<i class="fas fa-search me-2"></i>Analyze Resume';
+            return;
+        }
+    });
+});
+</script>
+{% endblock %}
 {% endblock %}

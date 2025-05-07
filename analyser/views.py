@@ -4,84 +4,111 @@ from .utils import parse_resume, calculate_tfidf_score
 from ml_model.services import predict_resume_success, analyze_keywords, generate_improved_resume, create_pdf_from_text
 from django.http import HttpResponse
 from django.http import JsonResponse
+from django.core.files.storage import FileSystemStorage
+from django.contrib import messages
+from django.urls import reverse
+from django.shortcuts import redirect
 
 def index(request):
     if request.method == 'POST':
         form = ResumeUploadForm(request.POST, request.FILES)
         if form.is_valid():
+            # Get the uploaded file
             resume_file = request.FILES['resume']
             job_description = form.cleaned_data['job_description']
             
-            # Parse resume
-            resume_text = parse_resume(resume_file)
+            # Save the file temporarily
+            fs = FileSystemStorage()
+            filename = fs.save(resume_file.name, resume_file)
+            file_path = fs.path(filename)
             
-            # Calculate TF-IDF score
-            tfidf_score = calculate_tfidf_score(resume_text, job_description)
-            
-            # Get ML prediction
-            prediction_result, error = predict_resume_success(resume_text, job_description)
-            if error:
-                return render(request, 'analyser/index.html', {
-                    'form': form,
-                    'error': error
-                })
-            
-            # Get keyword analysis
-            keyword_analysis = analyze_keywords(resume_text, job_description)
-            
-            context = {
-                'form': form,
-                'resume_text': resume_text,
-                'job_description': job_description,
-                'tfidf_score': tfidf_score,
-                'prediction': prediction_result['confidence'],
-                'probability': prediction_result['probability'],
-                'skills_found': prediction_result['skills_found'],
-                'keyword_analysis': keyword_analysis
-            }
-            return render(request, 'analyser/result.html', context)
+            try:
+                # Extract text from the resume
+                resume_text = parse_resume(file_path)
+                
+                # Get prediction and section evaluations
+                prediction_result = predict_resume_success(resume_text, job_description)
+                
+                if 'error' in prediction_result:
+                    messages.error(request, prediction_result['error'])
+                    return redirect('index')
+                
+                # Get keyword analysis
+                keyword_analysis = analyze_keywords(resume_text, job_description)
+                
+                # Debug print
+                print("\n=== Prediction Result ===")
+                print(prediction_result)
+                print("=== End Prediction Result ===\n")
+                
+                # Prepare context with all necessary data
+                context = {
+                    'resume_text': resume_text,
+                    'job_description': job_description,
+                    'prediction': {
+                        'probability': prediction_result['prediction'] * 100,
+                        'confidence': prediction_result['confidence'],
+                        'skills_found': prediction_result['skills_found']
+                    },
+                    'keyword_analysis': keyword_analysis,
+                    'section_evaluations': prediction_result.get('section_evaluations', {}),
+                    'debug': True  # Enable debug mode
+                }
+                
+                # Debug print
+                print("\n=== Context ===")
+                print(context)
+                print("=== End Context ===\n")
+                
+                # Clean up the uploaded file
+                fs.delete(filename)
+                
+                return render(request, 'analyser/result.html', context)
+                
+            except Exception as e:
+                messages.error(request, f'Error processing resume: {str(e)}')
+                if fs.exists(filename):
+                    fs.delete(filename)
+                return redirect('index')
     else:
         form = ResumeUploadForm()
     
     return render(request, 'analyser/index.html', {'form': form})
 
 def generate_improved_resume_view(request):
+    """View for generating an improved version of the resume."""
     if request.method == 'POST':
-        resume_text = request.POST.get('resume_text')
-        job_description = request.POST.get('job_description')
+        resume_text = request.POST.get('resume_text', '')
+        job_description = request.POST.get('job_description', '')
+        
+        if not resume_text or not job_description:
+            return JsonResponse({'error': 'Resume text and job description are required'})
         
         # Generate improved resume
-        improved_resume, changes = generate_improved_resume(resume_text, job_description)
-        
-        if improved_resume is None:
-            return JsonResponse({'error': changes}, status=400)
+        result = generate_improved_resume(resume_text, job_description)
+        if isinstance(result, tuple) and result[0] is None:
+            return JsonResponse({'error': result[1]})
         
         # Re-analyze the improved resume
-        prediction_result, error = predict_resume_success(improved_resume, job_description)
+        prediction_result, error = predict_resume_success(result['improved_resume'], job_description)
         if error:
-            return JsonResponse({'error': error}, status=400)
-        
-        # Get TF-IDF score
-        tfidf_score = calculate_tfidf_score(improved_resume, job_description)
+            return JsonResponse({'error': error})
         
         # Get keyword analysis
-        keyword_analysis = analyze_keywords(improved_resume, job_description)
+        keyword_analysis = analyze_keywords(result['improved_resume'], job_description)
         
         context = {
-            'resume_text': improved_resume,
+            'resume_text': result['improved_resume'],
             'job_description': job_description,
-            'prediction': prediction_result['confidence'],
-            'probability': prediction_result['probability'],
-            'skills_found': prediction_result['skills_found'],
-            'tfidf_score': tfidf_score,
+            'prediction': prediction_result,
             'keyword_analysis': keyword_analysis,
-            'changes': changes,
-            'is_improved': True
+            'changes_made': result['changes'],
+            'section_evaluations': result['section_evaluations']
         }
         
         return render(request, 'analyser/result.html', context)
     
-    return JsonResponse({'error': 'Invalid request method'}, status=400)
+    return JsonResponse({'error': 'Invalid request method'})
 
 def download_improved_resume(request):
     if request.method == 'POST':

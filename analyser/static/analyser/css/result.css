@@ -64,4 +64,99 @@
 .changes-list .card-text {
     margin-bottom: 0;
     color: #333;
+}
+
+.section-evaluation {
+    padding: 1rem;
+    border: 1px solid #dee2e6;
+    border-radius: 0.25rem;
+    margin-bottom: 1rem;
+}
+
+.section-evaluation h4 {
+    color: #2c3e50;
+    margin-bottom: 1rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 2px solid #e9ecef;
+}
+
+.section-evaluation h5 {
+    color: #495057;
+    font-size: 1.1rem;
+    margin-bottom: 0.75rem;
+}
+
+.section-evaluation ul li {
+    margin-bottom: 0.5rem;
+    padding-left: 1.5rem;
+    position: relative;
+}
+
+.section-evaluation ul li i {
+    position: absolute;
+    left: 0;
+    top: 0.25rem;
+}
+
+.strengths ul li i {
+    color: #28a745;
+}
+
+.improvements ul li i {
+    color: #ffc107;
+}
+
+.recommendations ul li i {
+    color: #17a2b8;
+}
+
+.keyword-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.keyword-list .badge {
+    font-size: 0.9rem;
+    padding: 0.5rem 0.75rem;
+}
+
+.progress {
+    height: 1.5rem;
+    background-color: #e9ecef;
+    border-radius: 0.25rem;
+    overflow: hidden;
+}
+
+.progress-bar {
+    background-color: #007bff;
+    color: white;
+    text-align: center;
+    line-height: 1.5rem;
+    font-size: 0.9rem;
+    transition: width 0.6s ease;
+}
+
+.progress-bar[data-width] {
+    width: var(--progress-width);
+}
+
+.resume-text, .job-description {
+    white-space: pre-wrap;
+    font-family: 'Courier New', Courier, monospace;
+    background-color: #f8f9fa;
+    padding: 1rem;
+    border-radius: 0.25rem;
+    border: 1px solid #dee2e6;
+}
+
+.list-group-item {
+    display: flex;
+    align-items: center;
+    padding: 0.75rem 1rem;
+}
+
+.list-group-item i {
+    margin-right: 0.75rem;
+    font-size: 1.1rem;
 } 
