@@ -154,7 +154,7 @@ def predict_resume_success(resume_text, job_description):
         response = requests.post(
             'http://10.1.1.126:11434/api/generate',
             json={
-                'model': 'llama3_Q6',
+                'model': 'llama3.1',
                 'prompt': prompt,
                 'stream': False,
                 'options': {
@@ -216,15 +216,15 @@ def predict_resume_success(resume_text, job_description):
                 print(f"\nProcessing line: {line}")
                 
                 # Check for category headers
-                if line.startswith('* Strengths:'):
+                if 'Strengths:' in line:
                     current_category = 'strengths'
                     print("Found Strengths category")
                     continue
-                elif line.startswith('* Areas for Improvement:'):
+                elif 'Areas for Improvement:' in line:
                     current_category = 'improvements'
                     print("Found Improvements category")
                     continue
-                elif line.startswith('* Recommendations:'):
+                elif 'Recommendations:' in line:
                     current_category = 'recommendations'
                     print("Found Recommendations category")
                     continue
@@ -243,7 +243,7 @@ def predict_resume_success(resume_text, job_description):
                         print(f"Added to {current_category}: {line}")
         
         print("\n=== Final Section Evaluations ===")
-        print(section_evaluations)
+        print(json.dumps(section_evaluations, indent=2))
         print("=== End Final Section Evaluations ===\n")
         
         return {
@@ -392,53 +392,87 @@ def generate_improved_resume(resume_text, job_description):
     Job Description:
     {job_description}
     
-    Please provide your response in the following format:
+    Please provide your response in EXACTLY the following format:
+
+    === SECTION EVALUATION ===
+    **Summary/Objective (Score: X/10)**
+    - Strengths: 
+      * [First strength]
+      * [Second strength]
+    - Areas for Improvement: 
+      * [First improvement]
+      * [Second improvement]
+    - Recommendations: 
+      * [First recommendation]
+      * [Second recommendation]
     
-    SECTION EVALUATION:
-    Summary/Objective (Score: X/10):
-    - Strengths: [List key strengths]
-    - Areas for Improvement: [List areas to improve]
-    - Recommendations: [Specific suggestions]
+    **Experience (Score: X/10)**
+    - Strengths: 
+      * [First strength]
+      * [Second strength]
+    - Areas for Improvement: 
+      * [First improvement]
+      * [Second improvement]
+    - Recommendations: 
+      * [First recommendation]
+      * [Second recommendation]
     
-    Experience (Score: X/10):
-    - Strengths: [List key strengths]
-    - Areas for Improvement: [List areas to improve]
-    - Recommendations: [Specific suggestions]
+    **Skills (Score: X/10)**
+    - Strengths: 
+      * [First strength]
+      * [Second strength]
+    - Areas for Improvement: 
+      * [First improvement]
+      * [Second improvement]
+    - Recommendations: 
+      * [First recommendation]
+      * [Second recommendation]
     
-    Skills (Score: X/10):
-    - Strengths: [List key strengths]
-    - Areas for Improvement: [List areas to improve]
-    - Recommendations: [Specific suggestions]
+    **Education (Score: X/10)**
+    - Strengths: 
+      * [First strength]
+      * [Second strength]
+    - Areas for Improvement: 
+      * [First improvement]
+      * [Second improvement]
+    - Recommendations: 
+      * [First recommendation]
+      * [Second recommendation]
     
-    Education (Score: X/10):
-    - Strengths: [List key strengths]
-    - Areas for Improvement: [List areas to improve]
-    - Recommendations: [Specific suggestions]
-    
-    Projects/Achievements (Score: X/10):
-    - Strengths: [List key strengths]
-    - Areas for Improvement: [List areas to improve]
-    - Recommendations: [Specific suggestions]
+    **Projects/Achievements (Score: X/10)**
+    - Strengths: 
+      * [First strength]
+      * [Second strength]
+    - Areas for Improvement: 
+      * [First improvement]
+      * [Second improvement]
+    - Recommendations: 
+      * [First recommendation]
+      * [Second recommendation]
     
     Overall Resume Score: X/10
-    
-    IMPROVED RESUME:
-    [Your improved resume text here]
-    
-    CHANGES MADE:
-    1. [First change]
-    2. [Second change]
-    3. [Third change]
-    
-    EXPLANATION:
-    [Your explanation of why these changes improve the match with the job description]"""
+
+    === CHANGES MADE ===
+    Please list at least 5 specific changes that should be made to improve the resume for this job:
+    1. [First specific change]
+    2. [Second specific change]
+    3. [Third specific change]
+    4. [Fourth specific change]
+    5. [Fifth specific change]
+
+    === IMPROVED RESUME ===
+    [Provide a complete, improved version of the resume that addresses the recommendations above. Include all sections: Profile, Experience, Education, Skills, and any other relevant sections. Make sure to tailor the content to match the job description requirements.]
+
+    === EXPLANATION ===
+    [Explain why these changes improve the match with the job description and how they address the identified areas for improvement]
+    """
     
     try:
         # Call Ollama API
         response = requests.post(
             'http://10.1.1.126:11434/api/generate',
             json={
-                'model': 'llama3_Q6',
+                'model': 'llama3.1',
                 'prompt': prompt,
                 'stream': False,
                 'options': {
@@ -455,8 +489,12 @@ def generate_improved_resume(resume_text, job_description):
         result = response.json()
         content = result['response']
         
+        print("\n=== API Response ===")
+        print(content)
+        print("=== End API Response ===\n")
+        
         # Split the response into sections
-        sections = content.split('\n\n')
+        sections = content.split('===')
         improved_resume = ""
         changes = []
         section_evaluations = {}
@@ -468,48 +506,67 @@ def generate_improved_resume(resume_text, job_description):
             if not section:
                 continue
                 
-            if section.startswith('SECTION EVALUATION:'):
-                current_section = 'evaluation'
-                continue
-            elif section.startswith('IMPROVED RESUME:'):
-                current_section = 'resume'
-                continue
-            elif section.startswith('CHANGES MADE:'):
-                current_section = 'changes'
-                continue
-            elif section.startswith('EXPLANATION:'):
-                current_section = 'explanation'
-                continue
-                
-            if current_section == 'evaluation':
+            if 'SECTION EVALUATION' in section:
                 # Parse section evaluations
-                if ':' in section and '(' in section:
-                    section_name = section.split('(')[0].strip()
-                    score = section.split('(')[1].split('/')[0].strip()
-                    current_evaluation = {
-                        'score': score,
-                        'strengths': [],
-                        'improvements': [],
-                        'recommendations': []
-                    }
-                    section_evaluations[section_name] = current_evaluation
-                elif section.startswith('- Strengths:'):
-                    current_evaluation['strengths'].append(section.replace('- Strengths:', '').strip())
-                elif section.startswith('- Areas for Improvement:'):
-                    current_evaluation['improvements'].append(section.replace('- Areas for Improvement:', '').strip())
-                elif section.startswith('- Recommendations:'):
-                    current_evaluation['recommendations'].append(section.replace('- Recommendations:', '').strip())
-            elif current_section == 'resume':
-                improved_resume += section + '\n\n'
-            elif current_section == 'changes':
-                if section.startswith(('1.', '2.', '3.', '4.', '5.')):
-                    changes.append(section[2:].strip())
-            elif current_section == 'explanation':
-                changes.append(section)
+                lines = section.split('\n')
+                for line in lines:
+                    line = line.strip()
+                    if not line:
+                        continue
+                        
+                    if '**' in line and '(' in line:
+                        # Extract section name and score
+                        section_name = line.split('(')[0].strip()
+                        section_name = section_name.replace('**', '').strip()
+                        score = line.split('(')[1].split('/')[0].strip()
+                        current_section = section_name
+                        current_evaluation = {
+                            'score': score,
+                            'strengths': [],
+                            'improvements': [],
+                            'recommendations': []
+                        }
+                        section_evaluations[current_section] = current_evaluation
+                    elif '- Strengths:' in line:
+                        current_category = 'strengths'
+                    elif '- Areas for Improvement:' in line:
+                        current_category = 'improvements'
+                    elif '- Recommendations:' in line:
+                        current_category = 'recommendations'
+                    elif line.startswith('*'):
+                        content = re.sub(r'^\*\s*', '', line).strip()
+                        if content and not content.startswith('[') and not content.endswith(']'):
+                            if current_section and current_category:
+                                current_evaluation[current_category].append(content)
+            elif 'CHANGES MADE' in section:
+                # Process changes section
+                lines = section.split('\n')
+                for line in lines:
+                    line = line.strip()
+                    if line.startswith(('1.', '2.', '3.', '4.', '5.')):
+                        change = re.sub(r'^\d+\.\s*', '', line).strip()
+                        if change and not change.startswith('[') and not change.endswith(']'):
+                            changes.append(change)
+            elif 'IMPROVED RESUME' in section:
+                # Extract improved resume
+                improved_resume = section.replace('IMPROVED RESUME', '').strip()
+            elif 'EXPLANATION' in section:
+                # Add explanation as additional context
+                explanation = section.replace('EXPLANATION', '').strip()
+                if explanation and not explanation.startswith('[') and not explanation.endswith(']'):
+                    changes.append(explanation)
         
         if not improved_resume:
             return None, "Failed to generate improved resume"
             
+        print("\n=== Final Section Evaluations ===")
+        print(json.dumps(section_evaluations, indent=2))
+        print("=== End Final Section Evaluations ===\n")
+        
+        print("\n=== Final Changes ===")
+        print(json.dumps(changes, indent=2))
+        print("=== End Final Changes ===\n")
+        
         return {
             'improved_resume': improved_resume.strip(),
             'changes': changes,
