@@ -272,8 +272,8 @@ def predict_resume_success(resume_text, job_description):
 
 def analyze_keywords(resume_text, job_description):
     """
-    Analyze keywords in resume and job description to generate heatmap data.
-    Returns a dictionary with keyword relevance scores and section analysis.
+    Analyze keywords in resume and job description to generate detailed matching analysis.
+    Returns a dictionary with keyword relevance scores, section analysis, and matching details.
     """
     # Common resume sections to look for
     sections = {
@@ -311,6 +311,10 @@ def analyze_keywords(resume_text, job_description):
             resume_sections[current_section] = []
         resume_sections[current_section].append(line)
     
+    # Track matched and missing keywords
+    matched_keywords = []
+    missing_keywords = []
+    
     # Analyze each section
     for section, content in resume_sections.items():
         section_text = ' '.join(content)
@@ -320,11 +324,30 @@ def analyze_keywords(resume_text, job_description):
         matching_keywords = []
         for keyword in job_keywords:
             if keyword in section_keywords:
+                count = section_keywords.count(keyword)
                 matching_keywords.append({
                     'keyword': keyword,
-                    'count': section_keywords.count(keyword),
+                    'count': count,
                     'relevance': 1.0  # Full relevance for exact matches
                 })
+                
+                # Add to matched keywords if not already there
+                if not any(k['keyword'] == keyword for k in matched_keywords):
+                    matched_keywords.append({
+                        'keyword': keyword,
+                        'sections': [{
+                            'name': section,
+                            'count': count
+                        }]
+                    })
+                else:
+                    # Add section to existing matched keyword
+                    for k in matched_keywords:
+                        if k['keyword'] == keyword:
+                            k['sections'].append({
+                                'name': section,
+                                'count': count
+                            })
         
         # Calculate section score
         section_score = len(matching_keywords) / len(job_keywords) if job_keywords else 0
@@ -333,28 +356,18 @@ def analyze_keywords(resume_text, job_description):
             section_data[section]['keywords'] = matching_keywords
             section_data[section]['score'] = section_score
     
-    # Generate overall keyword relevance
-    keyword_relevance = []
-    for keyword in job_keywords:
-        relevance = {
-            'keyword': keyword,
-            'found': False,
-            'sections': []
-        }
-        
-        for section, data in section_data.items():
-            if any(k['keyword'] == keyword for k in data['keywords']):
-                relevance['found'] = True
-                relevance['sections'].append({
-                    'name': section,
-                    'count': next(k['count'] for k in data['keywords'] if k['keyword'] == keyword)
-                })
-        
-        keyword_relevance.append(relevance)
+    # Find missing keywords
+    missing_keywords = [keyword for keyword in job_keywords 
+                       if not any(k['keyword'] == keyword for k in matched_keywords)]
+    
+    # Calculate overall match percentage
+    match_percentage = (len(matched_keywords) / len(job_keywords) * 100) if job_keywords else 0
     
     return {
         'section_analysis': section_data,
-        'keyword_relevance': keyword_relevance,
+        'matched_keywords': matched_keywords,
+        'missing_keywords': missing_keywords,
+        'match_percentage': round(match_percentage, 1),
         'resume_keywords': {k: resume_keywords.count(k) for k in set(resume_keywords)},
         'job_keywords': {k: job_keywords.count(k) for k in set(job_keywords)}
     }

@@ -112,23 +112,73 @@
             <h3 class="card-title">Keyword Analysis</h3>
         </div>
         <div class="card-body">
-            <div class="row">
-                <div class="col-md-6">
-                    <h4>Resume Keywords</h4>
+            <!-- Overall Match Score -->
+            <div class="mb-4">
+                <h4>Overall Keyword Match</h4>
+                <div class="progress mb-3">
+                    <div class="progress-bar" role="progressbar" 
+                         data-width="{{ keyword_analysis.match_percentage }}" 
+                         style="--progress-width: {{ keyword_analysis.match_percentage }}%">
+                        {{ keyword_analysis.match_percentage }}% Match
+                    </div>
+                </div>
+                <p class="text-muted">
+                    {{ keyword_analysis.matched_keywords|length }} out of {{ keyword_analysis.job_keywords|length }} keywords matched
+                </p>
+            </div>
+
+            <!-- Matched Keywords -->
+            <div class="mb-4">
+                <h4>Matched Keywords</h4>
+                <div class="keyword-list">
+                    {% for keyword in keyword_analysis.matched_keywords %}
+                    <div class="keyword-match mb-2">
+                        <span class="badge bg-success me-2">{{ keyword.keyword }}</span>
+                        <small class="text-muted">
+                            Found in: 
+                            {% for section in keyword.sections %}
+                            <span class="badge bg-info me-1">{{ section.name }} ({{ section.count }})</span>
+                            {% endfor %}
+                        </small>
+                    </div>
+                    {% empty %}
+                    <p class="text-muted">No matching keywords found</p>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- Missing Keywords -->
+            <div class="mb-4">
+                <h4>Missing Keywords</h4>
+                <div class="keyword-list">
+                    {% for keyword in keyword_analysis.missing_keywords %}
+                    <span class="badge bg-warning me-2 mb-2">{{ keyword }}</span>
+                    {% empty %}
+                    <p class="text-muted">All keywords found!</p>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- Section Analysis -->
+            <div class="mb-4">
+                <h4>Section Analysis</h4>
+                {% for section_name, data in keyword_analysis.section_analysis.items %}
+                <div class="section-analysis mb-3">
+                    <h5>{{ section_name|title }}</h5>
+                    <div class="progress mb-2">
+                        <div class="progress-bar" role="progressbar" 
+                             data-width="{{ data.score|multiply:100 }}" 
+                             style="--progress-width: {{ data.score|multiply:100 }}%">
+                            {{ data.score|multiply:100 }}% Match
+                        </div>
+                    </div>
                     <div class="keyword-list">
-                        {% for keyword, count in keyword_analysis.resume_keywords.items %}
-                        <span class="badge bg-primary me-2 mb-2">{{ keyword }} ({{ count }})</span>
+                        {% for keyword in data.keywords %}
+                        <span class="badge bg-primary me-2 mb-2">{{ keyword.keyword }} ({{ keyword.count }})</span>
                         {% endfor %}
                     </div>
                 </div>
-                <div class="col-md-6">
-                    <h4>Job Description Keywords</h4>
-                    <div class="keyword-list">
-                        {% for keyword, count in keyword_analysis.job_keywords.items %}
-                        <span class="badge bg-secondary me-2 mb-2">{{ keyword }} ({{ count }})</span>
-                        {% endfor %}
-                    </div>
-                </div>
+                {% endfor %}
             </div>
         </div>
     </div>
