@@ -8,4 +8,9 @@ def multiply(value, arg):
     try:
         return float(value) * float(arg)
     except (ValueError, TypeError):
-        return '' 
+        return ''
+
+@register.filter
+def get_item(dictionary, key):
+    """Get an item from a dictionary using the key."""
+    return dictionary.get(key) 

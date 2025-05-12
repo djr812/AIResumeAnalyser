@@ -205,6 +205,19 @@ def predict_resume_success(resume_text, job_description):
                 section_evaluations[section_name] = current_evaluation
                 print(f"\nFound section: {section_name} with score {score}")
                 continue
+            elif 'Overall Resume Score:' in section:
+                # Handle overall score section
+                score = section.split(':')[1].strip()
+                current_section = 'Overall Resume Score'
+                current_evaluation = {
+                    'score': score,
+                    'strengths': [],
+                    'improvements': [],
+                    'recommendations': []
+                }
+                section_evaluations[current_section] = current_evaluation
+                print(f"\nFound section: {current_section} with score {score}")
+                continue
             
             # Process the section content
             lines = section.split('\n')

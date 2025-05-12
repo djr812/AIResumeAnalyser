@@ -37,7 +37,21 @@
         </div>
         <div class="card-body">
             {% if section_evaluations %}
+                {% if section_evaluations|get_item:"Overall Resume Score" %}
+                <div class="section-evaluation mb-4">
+                    <h4>Overall Resume Score: {{ section_evaluations|get_item:"Overall Resume Score"|get_item:"score" }}</h4>
+                    <div class="recommendations">
+                        <ul class="list-unstyled">
+                            {% for recommendation in section_evaluations|get_item:"Overall Resume Score"|get_item:"recommendations" %}
+                            <li><i class="fas fa-lightbulb text-info me-2"></i>{{ recommendation }}</li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                </div>
+                {% endif %}
+                
                 {% for section_name, evaluation in section_evaluations.items %}
+                {% if section_name != 'Overall Resume Score' %}
                 <div class="section-evaluation mb-4">
                     <h4>{{ section_name }} ({{ evaluation.score }})</h4>
                     
@@ -74,6 +88,7 @@
                         </ul>
                     </div>
                 </div>
+                {% endif %}
                 {% endfor %}
             {% else %}
                 <div class="alert alert-info">
