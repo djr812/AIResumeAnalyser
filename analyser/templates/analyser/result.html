@@ -25,7 +25,7 @@
                     {{ prediction.confidence }}%
                 </div>
             </div>
-            <p class="mb-2">Probability of Success: {{ prediction.probability }}%</p>
+            <p class="mb-2">Probability of Success: {{ prediction.prediction }}%</p>
             <p>Skills Found: {{ prediction.skills_found|join:", " }}</p>
         </div>
     </div>
@@ -183,38 +183,6 @@
         </div>
     </div>
 
-    <!-- Job Description Match -->
-    <div class="card mb-4">
-        <div class="card-header">
-            <h3 class="card-title">Job Description Match</h3>
-        </div>
-        <div class="card-body">
-            <div class="progress mb-3">
-                <div class="progress-bar" role="progressbar" 
-                     data-width="{{ keyword_analysis.overall_score }}" 
-                     style="--progress-width: {{ keyword_analysis.overall_score }}%">
-                    {{ keyword_analysis.overall_score }}%
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Changes Made -->
-    <div class="card mb-4">
-        <div class="card-header">
-            <h3 class="card-title">Changes Made</h3>
-        </div>
-        <div class="card-body">
-            <ul class="list-group">
-                {% for change in changes_made %}
-                <li class="list-group-item">
-                    <i class="fas fa-arrow-right text-primary me-2"></i>{{ change }}
-                </li>
-                {% endfor %}
-            </ul>
-        </div>
-    </div>
-
     <!-- Parsed Resume -->
     <div class="card mb-4">
         <div class="card-header">
@@ -237,17 +205,6 @@
                 {{ job_description|linebreaks }}
             </div>
         </div>
-    </div>
-
-    <!-- Download Button -->
-    <div class="text-center mb-4">
-        <form action="{% url 'download_improved_resume' %}" method="post">
-            {% csrf_token %}
-            <input type="hidden" name="resume_text" value="{{ resume_text }}">
-            <button type="submit" class="btn btn-primary">
-                <i class="fas fa-download me-2"></i>Download Improved Resume
-            </button>
-        </form>
     </div>
 </div>
 {% endblock %}

@@ -9,6 +9,7 @@ from sklearn.compose import ColumnTransformer
 import joblib
 import os
 from django.conf import settings
+from .utils import extract_skills_from_text
 
 def preprocess_data(df):
     """Preprocess the dataset for training."""
@@ -78,14 +79,30 @@ def train_model(dataset_path):
 
 def predict_resume_match(resume_text, job_description, model):
     """Predict if a resume matches a job description."""
+    # Extract skills from both resume and job description
+    resume_skills = extract_skills_from_text(resume_text)
+    job_skills = extract_skills_from_text(job_description)
+    
+    # Calculate skill match percentage
+    resume_skill_list = set(resume_skills.lower().split(', '))
+    job_skill_list = set(job_skills.lower().split(', '))
+    
+    # Calculate how many required skills are present
+    matching_skills = resume_skill_list.intersection(job_skill_list)
+    skill_match_ratio = len(matching_skills) / len(job_skill_list) if job_skill_list else 0
+    
     # Preprocess input
     features = pd.DataFrame({
-        'skills': [resume_text],
-        'experience': [0],  # These would need to be extracted from the resume
-        'projects': [0],    # These would need to be extracted from the resume
-        'salary': [0]       # These would need to be extracted from the resume
+        'skills': [resume_skills],
+        'experience': [len(resume_text.split()) / 100],  # Rough estimate based on text length
+        'projects': [resume_text.lower().count('project')],  # Count project mentions
+        'salary': [0]  # This would need to be extracted from the resume
     })
     
     # Make prediction
     prediction = model.predict_proba(features)[0]
-    return prediction[1]  # Return probability of positive class 
+    
+    # Combine model prediction with skill match ratio
+    final_probability = (prediction[1] + skill_match_ratio) / 2
+    
+    return final_probability  # Return combined probability 

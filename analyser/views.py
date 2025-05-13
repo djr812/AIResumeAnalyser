@@ -46,7 +46,7 @@ def index(request):
                     'resume_text': resume_text,
                     'job_description': job_description,
                     'prediction': {
-                        'probability': prediction_result['prediction'] * 100,
+                        'prediction': prediction_result['prediction'],
                         'confidence': prediction_result['confidence'],
                         'skills_found': prediction_result['skills_found']
                     },

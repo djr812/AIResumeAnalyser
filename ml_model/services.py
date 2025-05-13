@@ -1,5 +1,6 @@
 from .models import ResumePredictor
 from .train_model import predict_resume_match
+from .utils import extract_skills_from_text
 import re
 import os
 import openai
@@ -8,33 +9,6 @@ from docx.shared import Inches
 import io
 import requests
 import json
-
-def extract_skills_from_text(text):
-    """Extract skills from text using common patterns."""
-    # Common programming languages and technologies
-    common_skills = [
-        'python', 'java', 'javascript', 'c++', 'c#', 'ruby', 'php',
-        'html', 'css', 'sql', 'nosql', 'mongodb', 'postgresql', 'mysql',
-        'aws', 'azure', 'gcp', 'docker', 'kubernetes', 'react', 'angular',
-        'vue', 'node', 'django', 'flask', 'spring', 'tensorflow', 'pytorch',
-        'machine learning', 'deep learning', 'ai', 'artificial intelligence',
-        'data science', 'big data', 'hadoop', 'spark', 'scala', 'r',
-        'git', 'agile', 'scrum', 'devops', 'ci/cd', 'jenkins', 'linux',
-        'unix', 'windows', 'macos', 'ios', 'android', 'mobile development',
-        'web development', 'frontend', 'backend', 'full stack', 'cloud',
-        'security', 'cybersecurity', 'networking', 'blockchain', 'iot'
-    ]
-    
-    # Convert text to lowercase for case-insensitive matching
-    text_lower = text.lower()
-    
-    # Find all skills in the text
-    found_skills = []
-    for skill in common_skills:
-        if re.search(r'\b' + re.escape(skill) + r'\b', text_lower):
-            found_skills.append(skill)
-    
-    return ', '.join(found_skills)
 
 def predict_resume_success(resume_text, job_description):
     """Predict if a resume will be successful for a given job description."""
@@ -55,13 +29,11 @@ def predict_resume_success(resume_text, job_description):
         # Make prediction
         probability = predict_resume_match(skills, job_description, model)
         
-        # Determine confidence level
-        if probability > 0.7:
-            confidence = 'High'
-        elif probability > 0.4:
-            confidence = 'Medium'
-        else:
-            confidence = 'Low'
+        # Convert probability to percentage and round to 1 decimal place
+        probability_percentage = round(probability * 100, 1)
+        
+        # Use the actual probability percentage for both confidence and prediction
+        confidence = probability_percentage
         
         # Convert skills string to list and clean up
         skills_list = [skill.strip() for skill in skills.split(',') if skill.strip()]
@@ -260,7 +232,7 @@ def predict_resume_success(resume_text, job_description):
         print("=== End Final Section Evaluations ===\n")
         
         return {
-            'prediction': probability,
+            'prediction': probability_percentage,
             'confidence': confidence,
             'skills_found': skills_list,
             'section_evaluations': section_evaluations
